@@ -12,6 +12,7 @@ using SalesWebMvc.Data;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using SalesWebMvc.Services;
 
 namespace SalesWebMvc
 {
@@ -21,6 +22,7 @@ namespace SalesWebMvc
         {
             Configuration = configuration;
         }
+        //ApplicationDbContext
 
         public IConfiguration Configuration { get; }
 
@@ -28,19 +30,31 @@ namespace SalesWebMvc
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseMySql(Configuration.GetConnectionString("DefaultConnection"), builder =>
+                builder.MigrationsAssembly("SalesWebMvc")));
+            services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
+                .AddEntityFrameworkStores<ApplicationDbContext>();
+            services.AddControllersWithViews();
+            services.AddRazorPages();
+
+            services.AddScoped<SeedingService>();
+            services.AddScoped<SellerService>();
+
+            /*services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(
                     Configuration.GetConnectionString("DefaultConnection")));
             services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
                 .AddEntityFrameworkStores<ApplicationDbContext>();
             services.AddControllersWithViews();
-            services.AddRazorPages();
+            services.AddRazorPages();*/
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, SeedingService seedingService)
         {
             if (env.IsDevelopment())
             {
+                seedingService.Seed();
                 app.UseDeveloperExceptionPage();
                 app.UseDatabaseErrorPage();
             }
